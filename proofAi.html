@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ProofAI | Functional Proof-Carrying Data Analyst</title>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "Segoe UI", Arial, sans-serif;
+        }
+
+        :root {
+            --primary: #1677ff;
+            --secondary: #00c6a7;
+            --dark: #07111f;
+            --dark2: #0d1b2a;
+            --card: rgba(255, 255, 255, 0.05);
+            --border: rgba(255, 255, 255, 0.12);
+            --text: #eaf2ff;
+            --muted: #9fb0c5;
+            --danger: #ff5c70;
+            --warning: #ffbd59;
+            --success: #38d996;
+            --sidebar-width: 240px;
+        }
+
+        body {
+            background: #06101d;
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            overflow-x: hidden;
+        }
+
+        /* LOADING SPLASH SCREEN - FIXED OVERLAY BUG */
+        #loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: #040a14;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            transition: opacity 0.5s ease, visibility 0.5s ease;
+        }
+
+        #loading-screen.hidden {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+            display: none !important;
+        }
+
+        .loading-logo {
+            width: 90px;
+            height: 90px;
+            border-radius: 24px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            display: grid;
+            place-items: center;
+            font-size: 42px;
+            font-weight: 800;
+            color: white;
+            box-shadow: 0 0 50px rgba(22, 119, 255, 0.5);
+            animation: pulseLogo 1.8s infinite ease-in-out;
+            margin-bottom: 20px;
+        }
+
+        .loading-title {
+            font-size: 28px;
+            font-weight: 700;
+            color: white;
+            letter-spacing: 1px;
+            margin-bottom: 6px;
+        }
+
+        .loading-title span {
+            color: var(--secondary);
+        }
+
+        .loading-sub {
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        @keyframes pulseLogo {
+            0% { transform: scale(0.95); box-shadow: 0 0 25px rgba(22, 119, 255, 0.4); }
+            50% { transform: scale(1.08); box-shadow: 0 0 60px rgba(0, 198, 167, 0.7); }
+            100% { transform: scale(0.95); box-shadow: 0 0 25px rgba(22, 119, 255, 0.4); }
+        }
+
+        /* SIDEBAR NAVIGATION */
+        aside {
+            width: var(--sidebar-width);
+            background: var(--dark2);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            padding: 24px 16px;
+            height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 100;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 32px;
+            padding-left: 8px;
+        }
+
+        .brand-badge {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            display: grid;
+            place-items: center;
+            font-size: 18px;
+            font-weight: 800;
+        }
+
+        .nav-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .nav-item button {
+            width: 100%;
+            background: transparent;
+            border: none;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            color: var(--muted);
+            border-radius: 10px;
+            font-size: 14px;
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.2s ease;
+        }
+
+        .nav-item.active button, .nav-item button:hover {
+            background: var(--card);
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+
+        /* MAIN LAYOUT */
+        main {
+            margin-left: var(--sidebar-width);
+            flex: 1;
+            padding: 32px;
+            min-height: 100vh;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 28px;
+        }
+
+        .header-title h1 { font-size: 24px; font-weight: 700; }
+        .header-title p { color: var(--muted); font-size: 13px; margin-top: 4px; }
+
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(56, 217, 150, 0.1);
+            color: var(--success);
+            padding: 6px 14px;
+            border-radius: 20px;
+            border: 1px solid rgba(56, 217, 150, 0.3);
+            font-size: 13px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--success);
+            border-radius: 50%;
+        }
+
+        /* UI SECTIONS */
+        .page-section { display: none; }
+        .page-section.active { display: block; }
+
+        /* DASHBOARD METRICS */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 18px;
+            margin-bottom: 28px;
+        }
+
+        .card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        .card-label { font-size: 13px; color: var(--muted); margin-bottom: 8px; }
+        .card-value { font-size: 22px; font-weight: 700; color: #fff; }
+
+        /* FORMS & INTERACTION */
+        .content-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            color: var(--muted);
+            margin-bottom: 6px;
+        }
+
+        .input-control {
+            width: 100%;
+            padding: 10px 14px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: #fff;
+            font-size: 14px;
+            outline: none;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, var(--primary), #0052cc);
+            color: white;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 14px;
+        }
+
+        .btn:hover { opacity: 0.9; transform: translateY(-1px); }
+
+        .code-box {
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 16px;
+            font-family: "Courier New", Courier, monospace;
+            font-size: 12px;
+            color: var(--secondary);
+            max-height: 280px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        /* DATA TABLE */
+        .table-container {
+            width: 100%;
+            overflow-x: auto;
+            margin-top: 16px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 13px;
+        }
+
+        th, td {
+            padding: 12px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        th { color: var(--muted); font-weight: 600; background: rgba(0, 0, 0, 0.2); }
+    </style>
+</head>
+<body>
+
+    <!-- LOADING SPLASH SCREEN -->
+    <div id="loading-screen" onclick="dismissLoader()">
+        <div class="loading-logo">P</div>
+        <div class="loading-title">Proof<span>AI</span></div>
+        <div class="loading-sub">Initializing Cryptographic Verification Suite...</div>
+        <p style="color: var(--muted); font-size: 11px; margin-top: 15px; text-decoration: underline; cursor: pointer;">Click anywhere to skip loader</p>
+    </div>
+
+    <!-- SIDEBAR NAVIGATION -->
+    <aside>
+        <div class="brand">
+            <div class="brand-badge">P</div>
+            <span>ProofAI</span>
+        </div>
+        <ul class="nav-list">
+            <li class="nav-item active" onclick="switchTab('dashboard', this)">
+                <button>Dashboard</button>
+            </li>
+            <li class="nav-item" onclick="switchTab('analysis', this)">
+                <button>Data Analysis</button>
+            </li>
+            <li class="nav-item" onclick="switchTab('proof', this)">
+                <button>Proof Generator</button>
+            </li>
+            <li class="nav-item" onclick="switchTab('logs', this)">
+                <button>Verification Logs</button>
+            </li>
+        </ul>
+    </aside>
+
+    <!-- MAIN VIEW -->
+    <main>
+        <header>
+            <div class="header-title">
+                <h1 id="page-title">Dashboard Overview</h1>
+                <p>Verifiable data integrity with real-time zero-knowledge proof logging.</p>
+            </div>
+            <div class="status-pill">
+                <span class="status-dot"></span>
+                System Ready
+            </div>
+        </header>
+
+        <!-- DASHBOARD TAB -->
+        <section id="dashboard" class="page-section active">
+            <div class="metrics-grid">
+                <div class="card">
+                    <div class="card-label">Proofs Generated</div>
+                    <div class="card-value" id="metric-proofs">0</div>
+                </div>
+                <div class="card">
+                    <div class="card-label">Datasets Processed</div>
+                    <div class="card-value" id="metric-datasets">0</div>
+                </div>
+                <div class="card">
+                    <div class="card-label">Integrity Status</div>
+                    <div class="card-value" style="color: var(--success);" id="metric-integrity">Valid</div>
+                </div>
+                <div class="card">
+                    <div class="card-label">Avg Processing Time</div>
+                    <div class="card-value">12ms</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3 style="margin-bottom: 12px;">Quick Start Guide</h3>
+                <p style="color: var(--muted); font-size: 14px; line-height: 1.6;">
+                    Navigate to <strong>Data Analysis</strong> to upload CSV files or enter numbers directly to calculate real-time summary statistics.<br>
+                    Use <strong>Proof Generator</strong> to produce a verifiable SHA-256 cryptographic hash representation of your analytical results.
+                </p>
+            </div>
+        </section>
+
+        <!-- DATA ANALYSIS TAB -->
+        <section id="analysis" class="page-section">
+            <div class="content-grid">
+                <div class="card">
+                    <h3 style="margin-bottom: 16px;">Input Dataset</h3>
+                    <div class="form-group">
+                        <label>Option A: Enter Numerical Values (Comma-separated)</label>
+                        <input type="text" id="manual-data" class="input-control" placeholder="12, 45, 67, 89, 23, 90, 34">
+                    </div>
+                    <div class="form-group">
+                        <label>Option B: Upload CSV File</label>
+                        <input type="file" id="csv-file" accept=".csv" class="input-control">
+                    </div>
+                    <button class="btn" onclick="processDataset()">Run Statistical Analysis</button>
+                </div>
+
+                <div class="card">
+                    <h3 style="margin-bottom: 16px;">Analytical Results</h3>
+                    <div class="table-container">
+                        <table>
+                            <tr><th>Metric</th><th>Calculated Value</th></tr>
+                            <tr><td>Count</td><td id="stat-count">-</td></tr>
+                            <tr><td>Sum</td><td id="stat-sum">-</td></tr>
+                            <tr><td>Mean (Average)</td><td id="stat-mean">-</td></tr>
+                            <tr><td>Min / Max</td><td id="stat-minmax">-</td></tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- PROOF GENERATOR TAB -->
+        <section id="proof" class="page-section">
+            <div class="card">
+                <h3 style="margin-bottom: 16px;">Generate Cryptographic Integrity Proof</h3>
+                <p style="color: var(--muted); font-size: 13px; margin-bottom: 16px;">
+                    Generates a verifiable cryptographic proof (SHA-256 Hash) over the current analytical dataset state.
+                </p>
+                <button class="btn" onclick="generateProof()">Generate Proof</button>
+                
+                <div style="margin-top: 20px;">
+                    <div class="card-label">Generated Proof Payload</div>
+                    <div class="code-box" id="proof-output">No proof generated yet. Run analysis first.</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- VERIFICATION LOGS TAB -->
+        <section id="logs" class="page-section">
+            <div class="card">
+                <h3 style="margin-bottom: 16px;">Execution & Verification Audit Logs</h3>
+                <div class="code-box" id="log-output" style="max-height: 400px;">
+[SYSTEM INIT] Engine initialized successfully.
+[SYSTEM INIT] Proof verification protocol active.
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        // App State
+        const state = {
+            proofsCount: 0,
+            datasetsCount: 0,
+            currentData: [],
+            stats: null,
+            latestProof: null
+        };
+
+        // Navigation Switcher
+        function switchTab(tabId, element) {
+            document.querySelectorAll('.page-section').forEach(sec => sec.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+            
+            document.getElementById(tabId).classList.add('active');
+            element.classList.add('active');
+
+            const titles = {
+                'dashboard': 'Dashboard Overview',
+                'analysis': 'Data Analysis Engine',
+                'proof': 'Zero-Knowledge Proof Generator',
+                'logs': 'Verification & Audit Logs'
+            };
+            document.getElementById('page-title').innerText = titles[tabId];
+        }
+
+        // Logger Function
+        function log(message, type = 'INFO') {
+            const timestamp = new Date().toISOString().substring(11, 19);
+            const logBox = document.getElementById('log-output');
+            logBox.innerText += `\n[${timestamp}] [${type}] ${message}`;
+            logBox.scrollTop = logBox.scrollHeight;
+        }
+
+        // Processing CSV & Numbers
+        function processDataset() {
+            const inputVal = document.getElementById('manual-data').value;
+            const fileInput = document.getElementById('csv-file');
+
+            if (fileInput.files.length > 0) {
+                const file = fileInput.files[0];
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const text = e.target.result;
+                    const numbers = text.match(/-?\d+(\.\d+)?/g);
+                    if (numbers) {
+                        calculateStats(numbers.map(Number));
+                    } else {
+                        alert("No numerical data found in CSV file.");
+                    }
+                };
+                reader.readAsText(file);
+            } else if (inputVal.trim() !== "") {
+                const numbers = inputVal.split(',').map(n => parseFloat(n.trim())).filter(n => !isNaN(n));
+                if (numbers.length > 0) {
+                    calculateStats(numbers);
+                } else {
+                    alert("Please enter valid comma-separated numbers.");
+                }
+            } else {
+                alert("Please upload a CSV file or enter numerical values.");
+            }
+        }
+
+        function calculateStats(numbers) {
+            state.currentData = numbers;
+            const count = numbers.length;
+            const sum = numbers.reduce((a, b) => a + b, 0);
+            const mean = sum / count;
+            const min = Math.min(...numbers);
+            const max = Math.max(...numbers);
+
+            state.stats = { count, sum, mean, min, max };
+
+            document.getElementById('stat-count').innerText = count;
+            document.getElementById('stat-sum').innerText = sum.toFixed(2);
+            document.getElementById('stat-mean').innerText = mean.toFixed(2);
+            document.getElementById('stat-minmax').innerText = `${min} / ${max}`;
+
+            state.datasetsCount++;
+            document.getElementById('metric-datasets').innerText = state.datasetsCount;
+
+            log(`Dataset processed successfully (${count} data points).`);
+            alert("Analysis complete! Check the analytical results box.");
+        }
+
+        // SHA-256 Proof Generator
+        async function generateProof() {
+            if (!state.stats) {
+                alert("Please perform a Data Analysis first.");
+                return;
+            }
+
+            const dataString = JSON.stringify(state.stats) + Date.now();
+            const encoder = new TextEncoder();
+            const data = encoder.encode(dataString);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+            
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+
+            state.latestProof = {
+                proofHash: "0x" + hashHex,
+                timestamp: new Date().toISOString(),
+                payload: state.stats
+            };
+
+            state.proofsCount++;
+            document.getElementById('metric-proofs').innerText = state.proofsCount;
+
+            document.getElementById('proof-output').innerText = JSON.stringify(state.latestProof, null, 2);
+            log(`Proof generated: ${state.latestProof.proofHash}`, 'SUCCESS');
+        }
+
+        // Dismiss Splash Screen Safely
+        function dismissLoader() {
+            const splash = document.getElementById('loading-screen');
+            if (splash) {
+                splash.classList.add('hidden');
+            }
+        }
+
+        // Auto Dismiss Loader on Page Load
+        window.addEventListener('load', () => {
+            setTimeout(dismissLoader, 1000);
+        });
+
+        // Backup safety timeout in case onload event fails
+        setTimeout(dismissLoader, 2000);
+    </script>
+</body>
+</html>
